@@ -5,18 +5,28 @@ import axios from 'axios';
  * Set VITE_API_URL in .env to point to your backend.
  * In dev, Vite proxies /api → localhost:5000 automatically.
  */
+console.log('API Base URL:', import.meta.env.VITE_API_URL || 'https://opsflyserver-production.up.railway.app');
+
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'https://opsflyserver-production.up.railway.app',
-  timeout: 60000, // 60s — Whisper can take time on long recordings
+  timeout: 60000, 
   headers: {
     Accept: 'application/json',
   },
+  withCredentials: true
 });
 
 // ── Request/Response interceptors ─────────────────────────────────────────────
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    console.error('API Error Details:', {
+      url: error.config?.url,
+      method: error.config?.method,
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message
+    });
     const message =
       error.response?.data?.error ||
       error.response?.data?.message ||
