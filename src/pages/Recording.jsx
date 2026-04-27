@@ -35,6 +35,16 @@ export default function Recording() {
     };
   }, [phase]);
 
+  // Ensure mic is definitely OFF when we first load the page in idle state
+  useEffect(() => {
+    if (phase === 'idle') {
+      SpeechRecognition.stopListening();
+    }
+    return () => {
+      SpeechRecognition.stopListening();
+    };
+  }, []);
+
   // Start listening logic — triggered by user click
   const handleStart = async () => {
     if (!browserSupportsSpeechRecognition) {
