@@ -35,20 +35,33 @@ export default function Recording() {
     };
   }, [phase]);
 
-  // Start listening on mount
-  useEffect(() => {
+  // Start listening logic
+  const startListening = useCallback(async () => {
     if (!browserSupportsSpeechRecognition) {
       setPhase('error');
       setErrorMsg("Your browser doesn't support speech recognition. Please try Chrome or Safari.");
       return;
     }
-    
-    SpeechRecognition.startListening({ continuous: true });
-    
+
+    try {
+      // Explicitly request mic permission first
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      resetTranscript();
+      setPhase('recording');
+      SpeechRecognition.startListening({ continuous: true });
+    } catch (err) {
+      console.error('Mic access error:', err);
+      setPhase('error');
+      setErrorMsg("Microphone access denied. Please allow mic access in your browser settings and refresh.");
+    }
+  }, [browserSupportsSpeechRecognition, resetTranscript]);
+
+  useEffect(() => {
+    startListening();
     return () => {
       SpeechRecognition.stopListening();
     };
-  }, [browserSupportsSpeechRecognition]);
+  }, [startListening]);
 
   const handleStop = () => {
     setPhase('processing');
