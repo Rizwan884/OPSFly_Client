@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mic, PenLine, Camera, Users, DollarSign, Wrench, ClipboardCheck } from 'lucide-react';
+import { Mic, PenLine, Camera, Users, DollarSign, Wrench, ClipboardCheck, ChevronRight } from 'lucide-react';
 import Header from '../components/Header';
 import { getNotes, saveNote } from '../services/api';
 
@@ -66,9 +66,18 @@ export default function Home() {
           
           <div className="input-group">
             {/* Type a note row */}
-            <div className="input-row" onClick={() => document.getElementById('text-input')?.focus()}>
+            <div className="input-row">
               <PenLine size={20} />
-              <form onSubmit={handleTextSubmit} style={{ flex: 1 }}>
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (textNote.trim()) {
+                    navigate('/analysis', { state: { transcript: textNote, source: 'text' } });
+                    setTextNote('');
+                  }
+                }} 
+                style={{ flex: 1, display: 'flex', alignItems: 'center' }}
+              >
                 <input 
                   id="text-input"
                   placeholder="Type a note" 
@@ -80,11 +89,28 @@ export default function Home() {
                     border: 'none', 
                     outline: 'none', 
                     color: '#fff', 
-                    width: '100%',
+                    flex: 1,
                     fontSize: '0.9rem',
                     fontWeight: '500'
                   }}
                 />
+                {textNote.trim() && (
+                  <button 
+                    type="submit"
+                    style={{ 
+                      background: 'none', 
+                      border: 'none', 
+                      padding: '4px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--primary)'
+                    }}
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+                )}
               </form>
             </div>
             
