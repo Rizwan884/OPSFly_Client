@@ -6,7 +6,7 @@ import axios from 'axios';
  * In dev, Vite proxies /api → localhost:5000 automatically.
  */
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '',
+  baseURL: import.meta.env.VITE_API_URL || 'https://opsflyserver-production.up.railway.app',
   timeout: 60000, // 60s — Whisper can take time on long recordings
   headers: {
     Accept: 'application/json',
