@@ -11,7 +11,7 @@ import Header from '../components/Header';
  */
 export default function Recording() {
   const navigate = useNavigate();
-  const [phase, setPhase] = useState('recording'); // recording | processing | error
+  const [phase, setPhase] = useState('idle'); // idle | recording | processing | error
   const [elapsed, setElapsed] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -35,43 +35,36 @@ export default function Recording() {
     };
   }, [phase]);
 
-  // Start listening logic
-  const startListening = useCallback(async () => {
+  // Start listening logic — triggered by user click
+  const handleStart = async () => {
     if (!browserSupportsSpeechRecognition) {
       setPhase('error');
-      setErrorMsg("Your browser doesn't support speech recognition. Please try Chrome or Safari.");
+      setErrorMsg("Your browser doesn't support speech recognition.");
       return;
     }
 
     try {
-      // Explicitly request mic permission first
+      // Manual trigger for mobile browsers
       await navigator.mediaDevices.getUserMedia({ audio: true });
       resetTranscript();
       setPhase('recording');
-      SpeechRecognition.startListening({ continuous: true });
+      // Set continuous to true and keep it alive
+      SpeechRecognition.startListening({ continuous: true, language: 'en-US' });
     } catch (err) {
       console.error('Mic access error:', err);
       setPhase('error');
-      setErrorMsg("Microphone access denied. Please allow mic access in your browser settings and refresh.");
+      setErrorMsg("Mic access denied. Please allow mic in settings.");
     }
-  }, [browserSupportsSpeechRecognition, resetTranscript]);
-
-  useEffect(() => {
-    startListening();
-    return () => {
-      SpeechRecognition.stopListening();
-    };
-  }, [startListening]);
+  };
 
   const handleStop = () => {
     setPhase('processing');
     SpeechRecognition.stopListening();
     
-    // Simulate a brief "processing" delay for premium feel
     setTimeout(() => {
       navigate('/analysis', {
         state: { 
-          transcript: transcript || "(No speech detected. Try speaking closer to the mic.)", 
+          transcript: transcript || "(No speech detected.)", 
           source: 'voice' 
         },
         replace: true,
@@ -85,20 +78,6 @@ export default function Recording() {
     return `${m}:${sec.toString().padStart(2, '0')}`;
   };
 
-  if (!browserSupportsSpeechRecognition) {
-    return (
-      <div className="app-shell">
-        <Header showBack onBack={() => navigate('/')} title="Recording" />
-        <main className="recording-page">
-           <AlertCircle size={48} color="var(--staffing)" />
-           <p style={{ marginTop: '20px', textAlign: 'center', padding: '0 40px' }}>
-             Speech recognition is not supported in this browser.
-           </p>
-        </main>
-      </div>
-    );
-  }
-
   return (
     <div className="app-shell">
       <Header showBack onBack={() => navigate('/')} title="Recording" />
@@ -107,56 +86,57 @@ export default function Recording() {
         {phase === 'processing' ? (
           <div className="recording-status">
              <Loader2 size={18} className="spinner" color="var(--primary)" />
-             Transcribing...
+             Processing...
           </div>
-        ) : phase === 'error' ? (
+        ) : phase === 'idle' ? (
           <div className="recording-status">
-             <AlertCircle size={18} color="var(--staffing)" />
-             <span style={{ color: 'var(--staffing)', fontWeight: '600' }}>Error Occurred</span>
+            <div className="recording-dot" style={{ backgroundColor: 'var(--text-muted)' }}></div>
+            Ready to Record
           </div>
         ) : (
           <div className="recording-status">
             <div className="recording-dot"></div>
-            {listening ? 'Recording Note' : 'Mic Paused'}
+            {listening ? 'Recording...' : 'Mic Active'}
           </div>
         )}
 
-        <div className="recording-timer" style={{ opacity: phase === 'error' ? 0.5 : 1 }}>
+        <div className="recording-timer" style={{ opacity: phase === 'idle' ? 0.3 : 1 }}>
           {formatTime(elapsed)}
         </div>
 
         {phase === 'error' && (
-          <div style={{ color: 'var(--staffing)', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', textAlign: 'center', padding: '0 20px', maxWidth: '300px' }}>
+          <div style={{ color: 'var(--staffing)', marginBottom: '24px', textAlign: 'center' }}>
             <p>{errorMsg}</p>
           </div>
         )}
 
-        {phase === 'error' ? (
-          <button className="stop-btn" onClick={() => window.location.reload()} style={{ background: 'var(--primary)', border: 'none' }}>
+        {phase === 'idle' ? (
+          <button className="stop-btn pulse" onClick={handleStart} style={{ background: 'var(--primary)', border: 'none' }}>
+            <Mic size={32} color="#fff" />
+          </button>
+        ) : phase === 'recording' ? (
+          <button className="stop-btn" onClick={handleStop}>
+            <Square size={32} fill="#fff" color="#fff" />
+          </button>
+        ) : phase === 'error' ? (
+          <button className="stop-btn" onClick={() => window.location.reload()} style={{ background: 'var(--primary)' }}>
             <Mic size={32} color="#fff" />
           </button>
         ) : (
-          <button 
-            className={`stop-btn ${phase === 'processing' ? 'loading' : ''}`} 
-            onClick={handleStop}
-            disabled={phase === 'processing'}
-          >
-            {phase === 'processing' ? (
-              <Loader2 size={32} className="spinner" />
-            ) : (
-              <Square size={32} fill="#fff" color="#fff" />
-            )}
+          <button className="stop-btn loading" disabled>
+            <Loader2 size={32} className="spinner" />
           </button>
         )}
 
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '16px' }}>
-          {phase === 'processing' ? 'Processing your speech...' : 
-           phase === 'error' ? 'Tap to retry' : 'Tap to stop recording'}
+          {phase === 'idle' ? 'Tap mic to start' : 
+           phase === 'recording' ? 'Tap square to stop' : 
+           'Processing...'}
         </p>
 
-        {/* Live Preview (Subtle) */}
-        <div style={{ marginTop: '40px', padding: '0 30px', textAlign: 'center', opacity: 0.6, fontSize: '0.85rem', color: 'var(--text-secondary)', fontStyle: 'italic', maxHeight: '60px', overflow: 'hidden' }}>
-          {transcript.length > 0 ? `"${transcript.substring(0, 80)}..."` : "Start speaking to see transcription..."}
+        {/* Live Preview */}
+        <div style={{ marginTop: '40px', padding: '0 30px', textAlign: 'center', opacity: 0.6, fontSize: '0.85rem' }}>
+          {transcript.length > 0 ? `"${transcript}"` : phase === 'recording' ? "Listening..." : ""}
         </div>
       </main>
     </div>
