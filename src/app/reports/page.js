@@ -1,12 +1,12 @@
 import Header from '@/src/components/Header';
-import { ClipboardList, Clock } from 'lucide-react';
+import { BarChart3, TrendingUp, Clock } from 'lucide-react';
 
-export const metadata = { title: 'Tasks – OpsFly' };
+export const metadata = { title: 'Reports – OpsFly' };
 
-export default function TasksPage() {
+export default function ReportsPage() {
   return (
-    <>
-      <Header title="Tasks" />
+    <div>
+      <Header title="Reports" />
       <main className="coming-soon">
         <div style={{
           width: 72, height: 72, borderRadius: '20px',
@@ -15,11 +15,11 @@ export default function TasksPage() {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           marginBottom: '24px'
         }}>
-          <ClipboardList size={32} color="var(--primary)" />
+          <BarChart3 size={32} color="var(--primary)" />
         </div>
-        <h2 style={{ fontSize: '1.4rem', fontWeight: '800', marginBottom: '12px' }}>Task Manager</h2>
+        <h2 style={{ fontSize: '1.4rem', fontWeight: '800', marginBottom: '12px' }}>Reports</h2>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.6, maxWidth: '280px' }}>
-          AI-detected issues automatically become tasks. Assign, track, and close them from here.
+          Weekly and monthly summaries of operational issues, staffing trends, and cost risks.
         </p>
         <div style={{
           marginTop: '32px', padding: '16px 24px',
@@ -31,6 +31,6 @@ export default function TasksPage() {
           <Clock size={16} /> Coming in Milestone 3
         </div>
       </main>
-    </>
+    </div>
   );
 }
