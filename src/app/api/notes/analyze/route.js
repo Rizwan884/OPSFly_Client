@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { analyzeTranscript } from '@/lib/analyzer';
 
+export async function GET() {
+  return NextResponse.json({ message: 'AI Analysis endpoint is active (POST only)' });
+}
+
 export async function POST(req) {
   try {
     const { transcript } = await req.json();
