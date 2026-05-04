@@ -1,25 +1,32 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mic, PenLine, Camera, Users, DollarSign, Wrench, ClipboardCheck, ChevronRight, Loader2, Info } from 'lucide-react';
+import { Mic, PenLine, Camera, Users, DollarSign, Wrench, ClipboardCheck, ChevronRight, Loader2 } from 'lucide-react';
 import Header from '../components/Header';
-import { analyzeNote } from '../services/api';
-import { useNotes } from '../context/NotesContext';
+import { getNotes, analyzeNote } from '../services/api';
 
 /**
  * Home Page — Updated with Lucide icons for a professional look.
  */
 export default function Home() {
-  const { notes, tasks, loading, refreshData } = useNotes();
+  const [notes, setNotes] = useState([]);
   const [textNote, setTextNote] = useState('');
+  const [loading, setLoading] = useState(true);
   const [isAnalyzingText, setIsAnalyzingText] = useState(false);
   const navigate = useNavigate();
 
-  // Greeting logic
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 18) return 'Good afternoon';
-    return 'Good evening';
+  useEffect(() => {
+    fetchNotes();
+  }, []);
+
+  const fetchNotes = async () => {
+    try {
+      const data = await getNotes();
+      setNotes(data.slice(0, 5)); // Show latest 5 on home
+    } catch (err) {
+      console.error('Failed to fetch notes', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleTextSubmit = async (e) => {
@@ -52,24 +59,6 @@ export default function Home() {
     }
   };
 
-  const getSeverityColor = (severity) => {
-    switch (severity?.toLowerCase()) {
-      case 'high': return '#EF4444';
-      case 'medium': return '#FF8A00';
-      case 'low': return '#22C55E';
-      default: return 'var(--text-muted)';
-    }
-  };
-
-  const getIssueIcon = (type) => {
-    switch (type?.toLowerCase()) {
-      case 'staffing': return <Users size={16} />;
-      case 'cost risk': return <DollarSign size={16} />;
-      case 'maintenance': return <Wrench size={16} />;
-      default: return <Info size={16} />;
-    }
-  };
-
   return (
     <div className="app-shell">
       <Header />
@@ -77,7 +66,7 @@ export default function Home() {
       <main className="page">
         {/* Greeting Section */}
         <section className="greeting-block">
-          <h1>{getGreeting()}, Fred 👋</h1>
+          <h1>Good morning, Fred 👋</h1>
           <p>Let's keep your operations running smooth.</p>
         </section>
 
@@ -155,7 +144,7 @@ export default function Home() {
           </div>
           
           <div className="notes-mini-list">
-            {loading && notes.length === 0 ? (
+            {loading ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px' }}>
                 <Loader2 size={16} className="spinner" />
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Loading notes...</p>
@@ -166,7 +155,7 @@ export default function Home() {
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No notes yet today.</p>
               </div>
             ) : (
-              notes.slice(0, 5).map(note => (
+              notes.map(note => (
                 <div key={note._id} className="note-item" onClick={() => navigate('/notes')} style={{ cursor: 'pointer' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', minWidth: '45px' }}>
                     <span className="time" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
@@ -217,33 +206,33 @@ export default function Home() {
                 borderRadius: '4px', 
                 color: 'var(--text-secondary)',
                 fontWeight: '700'
-              }}>{tasks.length}</span>
+              }}>3</span>
             </div>
             <Link to="/tasks" className="view-all">View all</Link>
           </div>
           
           <div className="tasks-mini-list">
-            {loading && tasks.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Loading tasks...</p>
-            ) : tasks.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '24px', background: 'var(--bg-card-alt)', borderRadius: '16px' }}>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>All clear! No open tasks.</p>
+            <div className="task-item">
+              <div className="task-icon-box" style={{ background: 'rgba(255, 77, 106, 0.15)', color: 'var(--staffing)' }}>
+                <Users size={16} />
               </div>
-            ) : (
-              tasks.slice(0, 3).map((task, idx) => (
-                <div key={`${task.noteId}-${idx}`} className="task-item" onClick={() => navigate('/tasks')} style={{ cursor: 'pointer' }}>
-                  <div className="task-icon-box" style={{ background: `${getSeverityColor(task.severity)}15`, color: getSeverityColor(task.severity) }}>
-                    {getIssueIcon(task.type)}
-                  </div>
-                  <span className="task-title" style={{ flex: 1 }}>{task.suggestedTask}</span>
-                  <span className="task-badge" style={{ 
-                    background: `${getSeverityColor(task.severity)}20`, 
-                    color: getSeverityColor(task.severity),
-                    border: `1px solid ${getSeverityColor(task.severity)}40`
-                  }}>{task.severity}</span>
-                </div>
-              ))
-            )}
+              <span className="task-title">Review staffing coverage</span>
+              <span className="task-badge badge-high">High</span>
+            </div>
+            <div className="task-item">
+              <div className="task-icon-box" style={{ background: 'rgba(255, 184, 0, 0.15)', color: 'var(--cost)' }}>
+                <DollarSign size={16} />
+              </div>
+              <span className="task-title">Check bar pour control</span>
+              <span className="task-badge badge-medium">Medium</span>
+            </div>
+            <div className="task-item">
+              <div className="task-icon-box" style={{ background: 'rgba(0, 214, 143, 0.15)', color: 'var(--maintenance)' }}>
+                <Wrench size={16} />
+              </div>
+              <span className="task-title">Replace entrance plant</span>
+              <span className="task-badge badge-low">Low</span>
+            </div>
           </div>
         </section>
       </main>

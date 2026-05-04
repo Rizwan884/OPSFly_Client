@@ -3,15 +3,13 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { CheckCircle2, AlertCircle, Save, Edit3, Trash2, Loader2, Users, DollarSign, Wrench, Info } from 'lucide-react';
 import Header from '../components/Header';
 import { saveNote } from '../services/api';
-import { useNotes } from '../context/NotesContext';
 
 /**
- * NoteAnalysis Page — Review transcript and save.
+ * NoteAnalysis Page — Review transcript and save issues (Milestone 2).
  */
 export default function NoteAnalysis() {
   const { state } = useLocation();
   const navigate = useNavigate();
-  const { refreshData } = useNotes();
   
   const [transcript, setTranscript] = useState(state?.transcript || '');
   const [issues, setIssues] = useState(state?.issues || []);
@@ -35,8 +33,6 @@ export default function NoteAnalysis() {
         issues: issues,
         analyzedAt: state?.analyzedAt || new Date()
       });
-      // Refresh global state so Home and Tasks screens have new data
-      await refreshData();
       navigate('/');
     } catch (err) {
       alert('Failed to save note');
