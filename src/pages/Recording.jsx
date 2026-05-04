@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 import { Mic, Square, Loader2, AlertCircle } from 'lucide-react';
 import Header from '../components/Header';
+import { analyzeNote } from '../services/api';
 
 /**
  * Recording Page — Now uses Browser Web Speech API via react-speech-recognition
@@ -14,6 +15,7 @@ export default function Recording() {
   const [phase, setPhase] = useState('idle'); // idle | recording | processing | error
   const [elapsed, setElapsed] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
+  const [analysisStatus, setAnalysisStatus] = useState('');
 
   const {
     transcript,
@@ -67,19 +69,37 @@ export default function Recording() {
     }
   };
 
-  const handleStop = () => {
+  const handleStop = async () => {
     setPhase('processing');
+    setAnalysisStatus('Analyzing note...');
     SpeechRecognition.stopListening();
     
-    setTimeout(() => {
+    const finalTranscript = transcript || "(No speech detected.)";
+
+    try {
+      const analysisResult = await analyzeNote(finalTranscript);
+      
       navigate('/analysis', {
         state: { 
-          transcript: transcript || "(No speech detected.)", 
-          source: 'voice' 
+          transcript: finalTranscript, 
+          source: 'voice',
+          issues: analysisResult.issues,
+          analyzedAt: new Date()
         },
         replace: true,
       });
-    }, 800);
+    } catch (err) {
+      console.error('Analysis failed:', err);
+      // Fallback to navigation without issues if analysis fails
+      navigate('/analysis', {
+        state: { 
+          transcript: finalTranscript, 
+          source: 'voice',
+          issues: []
+        },
+        replace: true,
+      });
+    }
   };
 
   const formatTime = (s) => {
@@ -96,7 +116,7 @@ export default function Recording() {
         {phase === 'processing' ? (
           <div className="recording-status">
              <Loader2 size={18} className="spinner" color="var(--primary)" />
-             Processing...
+             {analysisStatus || 'Processing...'}
           </div>
         ) : phase === 'idle' ? (
           <div className="recording-status">

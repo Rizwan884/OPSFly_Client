@@ -1,42 +1,72 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mic, PenLine, Camera, Users, DollarSign, Wrench, ClipboardCheck, ChevronRight } from 'lucide-react';
+import { Mic, PenLine, Camera, Users, DollarSign, Wrench, ClipboardCheck, ChevronRight, Loader2, Info } from 'lucide-react';
 import Header from '../components/Header';
-import { getNotes, saveNote } from '../services/api';
+import { analyzeNote } from '../services/api';
+import { useNotes } from '../context/NotesContext';
 
 /**
  * Home Page — Updated with Lucide icons for a professional look.
  */
 export default function Home() {
-  const [notes, setNotes] = useState([]);
+  const { notes, tasks, loading, refreshData } = useNotes();
   const [textNote, setTextNote] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [isAnalyzingText, setIsAnalyzingText] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchNotes();
-  }, []);
-
-  const fetchNotes = async () => {
-    try {
-      const data = await getNotes();
-      setNotes(data.slice(0, 3)); // Only show latest 3 on home
-    } catch (err) {
-      console.error('Failed to fetch notes', err);
-    } finally {
-      setLoading(false);
-    }
+  // Greeting logic
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
   };
 
   const handleTextSubmit = async (e) => {
     if (e) e.preventDefault();
-    if (!textNote.trim()) return;
+    if (!textNote.trim() || isAnalyzingText) return;
+
+    setIsAnalyzingText(true);
     try {
-      await saveNote({ transcript: textNote, source: 'text' });
+      const result = await analyzeNote(textNote);
+      navigate('/analysis', { 
+        state: { 
+          transcript: textNote, 
+          source: 'text',
+          issues: result.issues,
+          analyzedAt: new Date()
+        } 
+      });
       setTextNote('');
-      fetchNotes();
     } catch (err) {
-      console.error('Save failed', err);
+      console.error('Analysis failed', err);
+      navigate('/analysis', { 
+        state: { 
+          transcript: textNote, 
+          source: 'text',
+          issues: []
+        } 
+      });
+    } finally {
+      setIsAnalyzingText(false);
+    }
+  };
+
+  const getSeverityColor = (severity) => {
+    switch (severity?.toLowerCase()) {
+      case 'high': return '#EF4444';
+      case 'medium': return '#FF8A00';
+      case 'low': return '#22C55E';
+      default: return 'var(--text-muted)';
+    }
+  };
+
+  const getIssueIcon = (type) => {
+    switch (type?.toLowerCase()) {
+      case 'staffing': return <Users size={16} />;
+      case 'cost risk': return <DollarSign size={16} />;
+      case 'maintenance': return <Wrench size={16} />;
+      default: return <Info size={16} />;
     }
   };
 
@@ -47,7 +77,7 @@ export default function Home() {
       <main className="page">
         {/* Greeting Section */}
         <section className="greeting-block">
-          <h1>Good morning, Mike 👋</h1>
+          <h1>{getGreeting()}, Fred 👋</h1>
           <p>Let's keep your operations running smooth.</p>
         </section>
 
@@ -62,28 +92,23 @@ export default function Home() {
           
           <div className="tap-label">Tap to record note</div>
           
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: '600' }}>OR</div>
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: '600', margin: '8px 0' }}>OR</div>
           
           <div className="input-group">
             {/* Type a note row */}
             <div className="input-row">
-              <PenLine size={20} />
+              {isAnalyzingText ? <Loader2 size={20} className="spinner" /> : <PenLine size={20} />}
               <form 
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (textNote.trim()) {
-                    navigate('/analysis', { state: { transcript: textNote, source: 'text' } });
-                    setTextNote('');
-                  }
-                }} 
+                onSubmit={handleTextSubmit}
                 style={{ flex: 1, display: 'flex', alignItems: 'center' }}
               >
                 <input 
                   id="text-input"
-                  placeholder="Type a note" 
+                  placeholder={isAnalyzingText ? "Analyzing..." : "Type a note"} 
                   className="home-text-input"
                   value={textNote}
                   onChange={(e) => setTextNote(e.target.value)}
+                  disabled={isAnalyzingText}
                   style={{ 
                     background: 'none', 
                     border: 'none', 
@@ -94,7 +119,7 @@ export default function Home() {
                     fontWeight: '500'
                   }}
                 />
-                {textNote.trim() && (
+                {textNote.trim() && !isAnalyzingText && (
                   <button 
                     type="submit"
                     style={{ 
@@ -115,9 +140,9 @@ export default function Home() {
             </div>
             
             {/* Add Photo row */}
-            <div className="input-row">
+            <div className="input-row" style={{ opacity: 0.5 }}>
               <Camera size={20} />
-              <span style={{ fontSize: '0.9rem', fontWeight: '500' }}>Add Photo</span>
+              <span style={{ fontSize: '0.9rem', fontWeight: '500' }}>Add Photo (M4)</span>
             </div>
           </div>
         </div>
@@ -130,21 +155,50 @@ export default function Home() {
           </div>
           
           <div className="notes-mini-list">
-            {loading ? (
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Loading notes...</p>
+            {loading && notes.length === 0 ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px' }}>
+                <Loader2 size={16} className="spinner" />
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Loading notes...</p>
+              </div>
             ) : notes.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '20px' }}>
+              <div style={{ textAlign: 'center', padding: '24px', background: 'var(--bg-card-alt)', borderRadius: '16px' }}>
                 <ClipboardCheck size={32} color="var(--text-muted)" style={{ marginBottom: '8px' }} />
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No notes yet today.</p>
               </div>
             ) : (
-              notes.map(note => (
-                <div key={note._id} className="note-item">
-                  <span className="time">
-                    {new Date(note.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                  <div className="dot" style={{ backgroundColor: 'var(--primary)' }}></div>
-                  <span className="text">{note.transcript}</span>
+              notes.slice(0, 5).map(note => (
+                <div key={note._id} className="note-item" onClick={() => navigate('/notes')} style={{ cursor: 'pointer' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', minWidth: '45px' }}>
+                    <span className="time" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      {new Date(note.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                  <div className="dot" style={{ backgroundColor: note.issues?.length > 0 ? 'var(--staffing)' : 'var(--primary)' }}></div>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', overflow: 'hidden' }}>
+                    <span className="text" style={{ 
+                      whiteSpace: 'nowrap', 
+                      overflow: 'hidden', 
+                      textOverflow: 'ellipsis',
+                      fontSize: '0.9rem',
+                      color: '#fff'
+                    }}>
+                      {note.transcript}
+                    </span>
+                    {note.issues?.length > 0 && (
+                      <span style={{ 
+                        background: 'rgba(239, 68, 68, 0.1)', 
+                        color: '#EF4444', 
+                        fontSize: '0.7rem', 
+                        padding: '1px 6px', 
+                        borderRadius: '4px',
+                        fontWeight: '700',
+                        marginLeft: '8px',
+                        border: '1px solid rgba(239, 68, 68, 0.2)'
+                      }}>
+                        {note.issues.length}
+                      </span>
+                    )}
+                  </div>
                 </div>
               ))
             )}
@@ -163,33 +217,33 @@ export default function Home() {
                 borderRadius: '4px', 
                 color: 'var(--text-secondary)',
                 fontWeight: '700'
-              }}>3</span>
+              }}>{tasks.length}</span>
             </div>
             <Link to="/tasks" className="view-all">View all</Link>
           </div>
           
           <div className="tasks-mini-list">
-            <div className="task-item">
-              <div className="task-icon-box" style={{ background: 'rgba(255, 77, 106, 0.15)', color: 'var(--staffing)' }}>
-                <Users size={16} />
+            {loading && tasks.length === 0 ? (
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Loading tasks...</p>
+            ) : tasks.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '24px', background: 'var(--bg-card-alt)', borderRadius: '16px' }}>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>All clear! No open tasks.</p>
               </div>
-              <span className="task-title">Review staffing coverage</span>
-              <span className="task-badge badge-high">High</span>
-            </div>
-            <div className="task-item">
-              <div className="task-icon-box" style={{ background: 'rgba(255, 184, 0, 0.15)', color: 'var(--cost)' }}>
-                <DollarSign size={16} />
-              </div>
-              <span className="task-title">Check bar pour control</span>
-              <span className="task-badge badge-medium">Medium</span>
-            </div>
-            <div className="task-item">
-              <div className="task-icon-box" style={{ background: 'rgba(0, 214, 143, 0.15)', color: 'var(--maintenance)' }}>
-                <Wrench size={16} />
-              </div>
-              <span className="task-title">Replace entrance plant</span>
-              <span className="task-badge badge-low">Low</span>
-            </div>
+            ) : (
+              tasks.slice(0, 3).map((task, idx) => (
+                <div key={`${task.noteId}-${idx}`} className="task-item" onClick={() => navigate('/tasks')} style={{ cursor: 'pointer' }}>
+                  <div className="task-icon-box" style={{ background: `${getSeverityColor(task.severity)}15`, color: getSeverityColor(task.severity) }}>
+                    {getIssueIcon(task.type)}
+                  </div>
+                  <span className="task-title" style={{ flex: 1 }}>{task.suggestedTask}</span>
+                  <span className="task-badge" style={{ 
+                    background: `${getSeverityColor(task.severity)}20`, 
+                    color: getSeverityColor(task.severity),
+                    border: `1px solid ${getSeverityColor(task.severity)}40`
+                  }}>{task.severity}</span>
+                </div>
+              ))
+            )}
           </div>
         </section>
       </main>

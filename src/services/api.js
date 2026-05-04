@@ -5,10 +5,10 @@ import axios from 'axios';
  * Set VITE_API_URL in .env to point to your backend.
  * In dev, Vite proxies /api → localhost:5000 automatically.
  */
-console.log('API Base URL:', import.meta.env.VITE_API_URL || 'https://opsflyserver-production.up.railway.app');
+console.log('API Base URL:', import.meta.env.VITE_API_URL || '/ (local proxy)');
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://opsflyserver-production.up.railway.app',
+  baseURL: import.meta.env.VITE_API_URL || '',
   timeout: 60000, 
   headers: {
     Accept: 'application/json',
@@ -59,8 +59,18 @@ export async function transcribeAudio(audioBlob, mimeType = 'audio/webm') {
 }
 
 /**
- * Save a note (transcript + metadata) to the database.
- * @param {{ transcript: string, source?: string, rawAudio?: string }} data
+ * Analyze a transcript via OpenRouter.
+ * @param {string} transcript
+ * @returns {Promise<{ issues: Array<{ type, severity, quote, suggestedTask }> }>}
+ */
+export async function analyzeNote(transcript) {
+  const response = await api.post('/api/notes/analyze', { transcript });
+  return response.data;
+}
+
+/**
+ * Save a note (transcript + issues + metadata) to the database.
+ * @param {{ transcript: string, source?: string, rawAudio?: string, issues?: Array, analyzedAt?: Date }} data
  * @returns {Promise<{ success: boolean, note: object }>}
  */
 export async function saveNote(data) {
@@ -74,6 +84,17 @@ export async function saveNote(data) {
  */
 export async function getNotes() {
   const response = await api.get('/api/notes');
+  return response.data;
+}
+
+/**
+ * Update a specific note (e.g. edit issues or transcript).
+ * @param {string} id 
+ * @param {object} data 
+ * @returns {Promise<{ success: boolean, note: object }>}
+ */
+export async function updateNote(id, data) {
+  const response = await api.put(`/api/notes/${id}`, data);
   return response.data;
 }
 

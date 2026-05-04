@@ -82,17 +82,39 @@ export default function NotesList() {
                   <div 
                     key={note._id} 
                     className="compact-note-item"
-                    onClick={() => navigate('/analysis', { state: { _id: note._id, transcript: note.transcript, source: note.source } })}
+                    onClick={() => navigate('/analysis', { state: { ...note } })}
+                    style={{ cursor: 'pointer' }}
                   >
                     <div className="note-icon-circle">
                       {note.source === 'voice' ? <Mic size={14} /> : <PenLine size={14} />}
                     </div>
                     
                     <div className="note-content">
-                      <div className="note-time">
+                      <div className="note-time" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         {new Date(note.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {note.issues?.length > 0 && (
+                          <span style={{ 
+                            background: 'rgba(239, 68, 68, 0.1)', 
+                            color: '#EF4444', 
+                            fontSize: '0.65rem', 
+                            padding: '0px 4px', 
+                            borderRadius: '3px',
+                            fontWeight: '700',
+                            border: '1px solid rgba(239, 68, 68, 0.2)'
+                          }}>
+                            {note.issues.length} {note.issues.length === 1 ? 'issue' : 'issues'}
+                          </span>
+                        )}
                       </div>
-                      <div className="note-text-preview">{note.transcript}</div>
+                      <div className="note-text-preview" style={{ 
+                        fontSize: '0.85rem', 
+                        color: 'var(--text-muted)',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}>
+                        {note.transcript}
+                      </div>
                     </div>
                     
                     <ChevronRight size={16} color="var(--text-muted)" />
