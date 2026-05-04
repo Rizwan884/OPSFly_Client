@@ -1,31 +1,30 @@
-import { NavLink } from 'react-router-dom';
-import { Home, ClipboardList, BarChart3, MoreHorizontal } from 'lucide-react';
+"use client";
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { Home, ClipboardList, CheckSquare, MoreHorizontal } from 'lucide-react';
 
-/**
- * BottomNav — navigation bar with Lucide icons.
- */
 export default function BottomNav() {
+  const pathname = usePathname();
+
+  const navItems = [
+    { icon: Home, label: 'Home', path: '/' },
+    { icon: ClipboardList, label: 'Notes', path: '/notes' },
+    { icon: CheckSquare, label: 'Tasks', path: '/tasks' },
+    { icon: MoreHorizontal, label: 'More', path: '/more' },
+  ];
+
   return (
     <nav className="bottom-nav">
-      <NavLink to="/" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-        <Home size={22} className="nav-icon" />
-        <span className="nav-label">Home</span>
-      </NavLink>
-      
-      <NavLink to="/tasks" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-        <ClipboardList size={22} className="nav-icon" />
-        <span className="nav-label">Tasks</span>
-      </NavLink>
-      
-      <NavLink to="/reports" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-        <BarChart3 size={22} className="nav-icon" />
-        <span className="nav-label">Reports</span>
-      </NavLink>
-      
-      <NavLink to="/more" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-        <MoreHorizontal size={22} className="nav-icon" />
-        <span className="nav-label">More</span>
-      </NavLink>
+      {navItems.map((item) => {
+        const Icon = item.icon;
+        const isActive = pathname === item.path;
+        return (
+          <Link key={item.path} href={item.path} className={`nav-item ${isActive ? 'active' : ''}`}>
+            <Icon size={20} />
+            <span>{item.label}</span>
+          </Link>
+        );
+      })}
     </nav>
   );
 }

@@ -1,17 +1,17 @@
+"use client";
 import 'regenerator-runtime/runtime';
-import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
-import { Mic, Square, Loader2, AlertCircle } from 'lucide-react';
-import Header from '../components/Header';
-import { analyzeNote } from '../services/api';
+import { Mic, Square, Loader2 } from 'lucide-react';
+import Header from '@/src/components/Header';
+import { analyzeNote } from '@/src/services/api';
 
 /**
- * Recording Page — Now uses Browser Web Speech API via react-speech-recognition
- * as a temporary replacement for OpenAI Whisper.
+ * Recording Page — Converted to Next.js
  */
-export default function Recording() {
-  const navigate = useNavigate();
+export default function RecordingPage() {
+  const router = useRouter();
   const [phase, setPhase] = useState('idle'); // idle | recording | processing | error
   const [elapsed, setElapsed] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
@@ -24,7 +24,6 @@ export default function Recording() {
     browserSupportsSpeechRecognition
   } = useSpeechRecognition();
 
-  // Timer logic
   useEffect(() => {
     let interval = null;
     if (phase === 'recording') {
@@ -37,17 +36,6 @@ export default function Recording() {
     };
   }, [phase]);
 
-  // Ensure mic is definitely OFF when we first load the page in idle state
-  useEffect(() => {
-    if (phase === 'idle') {
-      SpeechRecognition.stopListening();
-    }
-    return () => {
-      SpeechRecognition.stopListening();
-    };
-  }, []);
-
-  // Start listening logic — triggered by user click
   const handleStart = async () => {
     if (!browserSupportsSpeechRecognition) {
       setPhase('error');
@@ -56,16 +44,13 @@ export default function Recording() {
     }
 
     try {
-      // Manual trigger for mobile browsers
       await navigator.mediaDevices.getUserMedia({ audio: true });
       resetTranscript();
       setPhase('recording');
-      // Set continuous to true and keep it alive
       SpeechRecognition.startListening({ continuous: true, language: 'en-US' });
     } catch (err) {
-      console.error('Mic access error:', err);
       setPhase('error');
-      setErrorMsg("Mic access denied. Please allow mic in settings.");
+      setErrorMsg("Mic access denied.");
     }
   };
 
@@ -79,26 +64,23 @@ export default function Recording() {
     try {
       const analysisResult = await analyzeNote(finalTranscript);
       
-      navigate('/analysis', {
-        state: { 
-          transcript: finalTranscript, 
-          source: 'voice',
-          issues: analysisResult.issues,
-          analyzedAt: new Date()
-        },
-        replace: true,
-      });
+      const analysisData = { 
+        transcript: finalTranscript, 
+        source: 'voice',
+        issues: analysisResult.issues,
+        analyzedAt: new Date()
+      };
+      sessionStorage.setItem('lastAnalysis', JSON.stringify(analysisData));
+      router.push('/analysis');
     } catch (err) {
       console.error('Analysis failed:', err);
-      // Fallback to navigation without issues if analysis fails
-      navigate('/analysis', {
-        state: { 
-          transcript: finalTranscript, 
-          source: 'voice',
-          issues: []
-        },
-        replace: true,
-      });
+      const fallbackData = { 
+        transcript: finalTranscript, 
+        source: 'voice',
+        issues: []
+      };
+      sessionStorage.setItem('lastAnalysis', JSON.stringify(fallbackData));
+      router.push('/analysis');
     }
   };
 
@@ -109,8 +91,8 @@ export default function Recording() {
   };
 
   return (
-    <div className="app-shell">
-      <Header showBack onBack={() => navigate('/')} title="Recording" />
+    <div className="page-wrapper">
+      <Header showBack title="Recording" />
 
       <main className="recording-page">
         {phase === 'processing' ? (
@@ -148,10 +130,6 @@ export default function Recording() {
           <button className="stop-btn" onClick={handleStop}>
             <Square size={32} fill="#fff" color="#fff" />
           </button>
-        ) : phase === 'error' ? (
-          <button className="stop-btn" onClick={() => window.location.reload()} style={{ background: 'var(--primary)' }}>
-            <Mic size={32} color="#fff" />
-          </button>
         ) : (
           <button className="stop-btn loading" disabled>
             <Loader2 size={32} className="spinner" />
@@ -164,7 +142,6 @@ export default function Recording() {
            'Processing...'}
         </p>
 
-        {/* Live Preview */}
         <div style={{ marginTop: '40px', padding: '0 30px', textAlign: 'center', opacity: 0.6, fontSize: '0.85rem' }}>
           {transcript.length > 0 ? `"${transcript}"` : phase === 'recording' ? "Listening..." : ""}
         </div>

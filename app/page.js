@@ -1,18 +1,20 @@
+"use client";
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import Link from "next/link";
+import { useRouter } from 'next/navigation';
 import { Mic, PenLine, Camera, Users, DollarSign, Wrench, ClipboardCheck, ChevronRight, Loader2 } from 'lucide-react';
-import Header from '../components/Header';
-import { getNotes, analyzeNote } from '../services/api';
+import Header from '@/src/components/Header';
+import { getNotes, analyzeNote } from '@/src/services/api';
 
 /**
- * Home Page — Updated with Lucide icons for a professional look.
+ * Home Page — Converted to Next.js Client Component
  */
 export default function Home() {
   const [notes, setNotes] = useState([]);
   const [textNote, setTextNote] = useState('');
   const [loading, setLoading] = useState(true);
   const [isAnalyzingText, setIsAnalyzingText] = useState(false);
-  const navigate = useNavigate();
+  const router = useRouter();
 
   useEffect(() => {
     fetchNotes();
@@ -36,31 +38,37 @@ export default function Home() {
     setIsAnalyzingText(true);
     try {
       const result = await analyzeNote(textNote);
-      navigate('/analysis', { 
-        state: { 
-          transcript: textNote, 
-          source: 'text',
-          issues: result.issues,
-          analyzedAt: new Date()
-        } 
-      });
+      // Next.js uses router.push instead of navigate
+      // We pass state via query params or a global store if needed, 
+      // but for simplicity with existing logic, we'll use sessionStorage or similar
+      // Actually, Next.js doesn't support 'state' in push natively like react-router
+      // So we'll use sessionStorage to pass the analysis data
+      const analysisData = { 
+        transcript: textNote, 
+        source: 'text',
+        issues: result.issues,
+        analyzedAt: new Date()
+      };
+      sessionStorage.setItem('lastAnalysis', JSON.stringify(analysisData));
+      router.push('/analysis');
+      
       setTextNote('');
     } catch (err) {
       console.error('Analysis failed', err);
-      navigate('/analysis', { 
-        state: { 
-          transcript: textNote, 
-          source: 'text',
-          issues: []
-        } 
-      });
+      const fallbackData = { 
+        transcript: textNote, 
+        source: 'text',
+        issues: []
+      };
+      sessionStorage.setItem('lastAnalysis', JSON.stringify(fallbackData));
+      router.push('/analysis');
     } finally {
       setIsAnalyzingText(false);
     }
   };
 
   return (
-    <div className="app-shell">
+    <div className="page-wrapper">
       <Header />
       
       <main className="page">
@@ -72,7 +80,7 @@ export default function Home() {
 
         {/* Main Action Card */}
         <div className="action-card">
-          <div className="mic-container" onClick={() => navigate('/recording')}>
+          <div className="mic-container" onClick={() => router.push('/recording')}>
             <div className="mic-glow"></div>
             <div className="mic-circle">
               <Mic size={32} color="#fff" strokeWidth={2.5} />
@@ -84,7 +92,6 @@ export default function Home() {
           <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: '600', margin: '8px 0' }}>OR</div>
           
           <div className="input-group">
-            {/* Type a note row */}
             <div className="input-row">
               {isAnalyzingText ? <Loader2 size={20} className="spinner" /> : <PenLine size={20} />}
               <form 
@@ -128,7 +135,6 @@ export default function Home() {
               </form>
             </div>
             
-            {/* Add Photo row */}
             <div className="input-row" style={{ opacity: 0.5 }}>
               <Camera size={20} />
               <span style={{ fontSize: '0.9rem', fontWeight: '500' }}>Add Photo (M4)</span>
@@ -140,7 +146,7 @@ export default function Home() {
         <section>
           <div className="section-head">
             <h3>Today's Notes</h3>
-            <Link to="/notes" className="view-all">View all</Link>
+            <Link href="/notes" className="view-all">View all</Link>
           </div>
           
           <div className="notes-mini-list">
@@ -156,7 +162,7 @@ export default function Home() {
               </div>
             ) : (
               notes.map(note => (
-                <div key={note._id} className="note-item" onClick={() => navigate('/notes')} style={{ cursor: 'pointer' }}>
+                <div key={note._id} className="note-item" onClick={() => router.push('/notes')} style={{ cursor: 'pointer' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', minWidth: '45px' }}>
                     <span className="time" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                       {new Date(note.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -208,7 +214,7 @@ export default function Home() {
                 fontWeight: '700'
               }}>3</span>
             </div>
-            <Link to="/tasks" className="view-all">View all</Link>
+            <Link href="/tasks" className="view-all">View all</Link>
           </div>
           
           <div className="tasks-mini-list">
