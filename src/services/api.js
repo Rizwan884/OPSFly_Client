@@ -141,6 +141,9 @@ export async function getSummaryList() {
 
 // ── Business DNA (M2) ─────────────────────────────────────────────────────────
 
+/** Industry config (category pills, labels) for the current org. */
+export const getIndustryConfig = () => api.get('/api/config').then((r) => r.data);
+
 export const getBusinessProfile = () => api.get('/api/dna/profile').then((r) => r.data);
 export const saveBusinessProfile = (data) => api.post('/api/dna/profile', data).then((r) => r.data);
 
@@ -153,6 +156,9 @@ export const getVendors = (params) => api.get('/api/dna/vendors', { params }).th
 export const addVendor = (data) => api.post('/api/dna/vendors', data).then((r) => r.data);
 export const updateVendor = (id, data) => api.put(`/api/dna/vendors/${id}`, data).then((r) => r.data);
 export const deleteVendor = (id) => api.delete(`/api/dna/vendors/${id}`).then((r) => r.data);
+
+/** Upload a raw file (FormData with a 'file' field) → { fileKey, signedUrl }. */
+export const uploadFile = (formData) => api.post('/api/upload', formData).then((r) => r.data);
 
 export const getDocuments = (params) => api.get('/api/dna/documents', { params }).then((r) => r.data);
 export const uploadDocument = (data) => api.post('/api/dna/documents', data).then((r) => r.data);
