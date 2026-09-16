@@ -142,6 +142,8 @@ export default async function handler(req, res) {
             sourceQuote: issue.quote,
             sourceTimestamp: note.analyzedAt || note.createdAt,
             sourceManagerId: decoded.userId,
+            assetId: issue.assetId,
+            vendorId: issue.vendorId,
             isIncident: (issue.categoryKey || '').toLowerCase() === 'safety' || (issue.categoryKey || '').toLowerCase() === 'incident',
           });
         }
